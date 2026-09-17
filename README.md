@@ -88,18 +88,52 @@ docker exec seismic-backend python -m app.init_data
 # http://localhost:8000/docs
 ```
 
-### 本地开发
+### 本地开发（一键准备环境，推荐）
+
+新同事首次启动只需一条命令，自动按顺序完成：前置检查 → 生成本地配置 → 启动
+PostgreSQL / Redis / MinIO → 等待服务就绪 → 创建虚拟环境并安装依赖 → 建表并写入示例数据。
+
+```bash
+# 前置条件：已安装并启动 Docker Desktop、Python 3.10+
+scripts/dev-up.sh
+```
+
+- 任意一步失败会立即停止，终端会标出失败步骤、退出码，并打印对应日志文件（`.dev-logs/NN-*.log`）的末尾内容。
+- 修好问题后**重新执行同一条命令**即可，各步骤均幂等，不会产生重复数据。
+- 需要完全重来时执行 `scripts/dev-up.sh --clean`，会删除三个容器及其数据卷、`backend/.venv`、`backend/.env`、`backend/data` 后全新准备，不会留下上次的中间产物。
+
+环境准备完成后，分别启动前后端（前端方式与以前一致）：
+
+```bash
+# 终端 1：后端
+cd backend
+.venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 终端 2：前端（方式照旧）
+cd frontend
+npm install
+npm start
+```
+
+基础设施端口：PostgreSQL 5432、Redis 6379、MinIO 9000（控制台 9001，账号 minioadmin / minioadmin123）。
+
+<details>
+<summary>手动步骤（不使用一键脚本时）</summary>
 
 #### 后端开发
 
 ```bash
 cd backend
+python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 
 # 配置环境变量
 cp .env.example .env
 
-# 初始化数据库
+# 启动基础设施（在仓库根目录）
+docker compose up -d postgres redis minio
+
+# 初始化数据库（建表 + 默认用户 + 建桶）
 python -m app.init_data
 
 # 启动服务
@@ -118,6 +152,8 @@ cp .env.example .env
 # 启动服务
 npm start
 ```
+
+</details>
 
 ### 默认账号
 
