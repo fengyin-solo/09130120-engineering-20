@@ -1,10 +1,13 @@
+import sys
+
 from sqlalchemy.orm import Session
-from .database import SessionLocal
+from .database import SessionLocal, engine, Base
 from . import models
 from .auth import get_password_hash
 
 
 def init_db():
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         admin_user = db.query(models.User).filter(models.User.username == "admin").first()
@@ -34,8 +37,9 @@ def init_db():
         db.commit()
         print("Database initialized with default users.")
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        print(f"Error initializing database: {e}", file=sys.stderr)
         db.rollback()
+        raise
     finally:
         db.close()
 

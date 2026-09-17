@@ -90,7 +90,50 @@ docker exec seismic-backend python -m app.init_data
 
 ### 本地开发
 
-#### 后端开发
+#### 一键初始化（推荐）
+
+```bash
+./scripts/dev-setup.sh
+```
+
+一条命令按顺序完成全部准备工作：
+
+| 步骤 | 内容 |
+|------|------|
+| 1. 环境预检 | 检查 docker / docker compose / python3 / node / npm 及端口占用 |
+| 2. 配置文件 | 生成 `backend/.env`、`frontend/.env`（已存在则保留，不会覆盖） |
+| 3. 基础服务 | 依次启动 PostgreSQL → Redis → MinIO，逐个等待就绪 |
+| 4. 后端依赖 | 创建 `backend/.venv` 虚拟环境并安装 `requirements.txt` |
+| 5. 前端依赖 | `npm ci`（依据 package-lock.json，保证不同机器结果一致） |
+| 6. 数据初始化 | 建表、创建默认用户、灌入示例项目与井数据（幂等） |
+| 7. 环境校验 | 检查数据库 / Redis / MinIO 连通性，确保 MinIO bucket 存在 |
+
+- 任一步骤失败时，会显示失败的步骤名、退出码与日志末尾 30 行；完整日志在 `.dev-setup/logs/`（每次运行前自动清空，不残留上一次的中间产物）。
+- 修复问题后直接重新执行 `./scripts/dev-setup.sh` 即可：所有步骤幂等，失败步骤的半成品（如未装完的虚拟环境）会自动清理。
+
+#### 启动服务
+
+后端：
+
+```bash
+cd backend
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+前端（启动方式不变）：
+
+```bash
+cd frontend
+npm start
+```
+
+#### 手动分步执行（备选）
+
+<details>
+<summary>展开查看手动步骤</summary>
+
+##### 后端开发
 
 ```bash
 cd backend
@@ -106,7 +149,7 @@ python -m app.init_data
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-#### 前端开发
+##### 前端开发
 
 ```bash
 cd frontend
@@ -118,6 +161,8 @@ cp .env.example .env
 # 启动服务
 npm start
 ```
+
+</details>
 
 ### 默认账号
 
@@ -146,6 +191,7 @@ yel3-1/
 │   │   ├── config.py          # 配置管理
 │   │   ├── database.py        # 数据库连接
 │   │   ├── init_data.py       # 初始化数据脚本
+│   │   ├── seed_data.py       # 示例数据脚本（幂等）
 │   │   └── main.py            # 应用入口
 │   ├── .env.example
 │   ├── Dockerfile
@@ -181,6 +227,8 @@ yel3-1/
 │   ├── API_REFERENCE.md       # API接口说明
 │   ├── DEPLOYMENT_GUIDE.md    # 部署指南
 │   └── USER_MANUAL.md         # 用户操作手册
+├── scripts/                    # 开发环境脚本
+│   └── dev-setup.sh           # 本地开发环境一键初始化
 └── docker-compose.yml          # Docker编排配置
 ```
 
